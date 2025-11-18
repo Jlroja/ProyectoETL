@@ -1,181 +1,96 @@
-dim_fecha :
-  create table dim_fecha
-  (
-  key_dim_fecha SERIAL not null
-  constraint dim_fecha_pk
-  primary key,
-  date          timestamp,
-  year          integer,
-  month         integer,
-  day           integer,
-  weekday       integer,
-  quarter       integer,
-  day_of_year   integer,
-  day_of_month  integer,
-  month_str     text,
-  day_str       text,
-  date_str      text,
-  "is_Holiday"  boolean,
-  holiday       text,
-  saved         date,
-  weekend       boolean
-  );
+dim_customer: |
+  CREATE TABLE dim_customer (
+    customer_key SERIAL PRIMARY KEY,
+    customer_id INTEGER,
+    person_id INTEGER,
+    store_id INTEGER,
+    customer_name VARCHAR(200),
+    email VARCHAR(100),
+    phone VARCHAR(50),
+    city VARCHAR(100),
+    state_province VARCHAR(100),
+    country_region VARCHAR(100),
+    customer_type VARCHAR(20),
+    email_promotion_category VARCHAR(20),
+    saved_date DATE
+  )
 
+dim_product: |
+  CREATE TABLE dim_product (
+    product_key SERIAL PRIMARY KEY,
+    product_id INTEGER,
+    product_name VARCHAR(100),
+    product_number VARCHAR(50),
+    color VARCHAR(30),
+    size VARCHAR(10),
+    weight DECIMAL(10,2),
+    standard_cost DECIMAL(10,2),
+    list_price DECIMAL(10,2),
+    profit_margin DECIMAL(5,2),
+    price_category VARCHAR(20),
+    margin_category VARCHAR(20),
+    category_name VARCHAR(100),
+    subcategory_name VARCHAR(100),
+    full_category VARCHAR(200),
+    product_model_name VARCHAR(100),
+    saved_date DATE
+  )
 
-dim_ips :
-  create table dim_ips
-  (
-  key_dim_ips  SERIAL not null
-  constraint dim_ips_pk
-  primary key,
-  id_ips       text,
-  tipo_ips     text,
-  nombre       text,
-  direccion    text,
-  nivel        text,
-  municipio    text,
-  departamento text,
-  saved        date
-  );
-dim_medico :
-  create table dim_medico
-  (
-  key_dim_medico        SERIAL not null
-  primary key,
-  cedula                text,
-  nombre                text,
-  especialidad          text,
-  subespecialidad       text,
-  licencia              text,
-  direccion_consultorio text,
-  id_ips                text,
-  saved                 date
-  );
+dim_date: |
+  CREATE TABLE dim_date (
+    date_key SERIAL PRIMARY KEY,
+    date DATE,
+    year INTEGER,
+    month INTEGER,
+    day INTEGER,
+    weekday INTEGER,
+    quarter INTEGER,
+    day_of_year INTEGER,
+    month_name VARCHAR(20),
+    day_name VARCHAR(20),
+    week_of_year INTEGER,
+    is_weekend BOOLEAN,
+    is_month_end BOOLEAN,
+    is_quarter_end BOOLEAN,
+    is_year_end BOOLEAN,
+    fiscal_quarter INTEGER,
+    fiscal_year INTEGER,
+    saved_date DATE
+  )
 
-dim_persona :
-  create table dim_persona
-  (
-  key_dim_persona       SERIAL not null
-  primary key,
-  tipo_documento        text,
-  numero_identificacion text,
-  nombre                text,
-  fecha_nacimiento      timestamp,
-  sexo                  text,
-  estado_civil          text,
-  tipo_discapacidad     text,
-  tipo_usuario          text,
-  grupo_familiar        text,
-  saved                 date
-  );
+fact_internet_sales: |
+  CREATE TABLE fact_internet_sales (
+    sales_order_id INTEGER,
+    sales_order_detail_id INTEGER,
+    customer_key INTEGER REFERENCES dim_customer(customer_key),
+    product_key INTEGER REFERENCES dim_product(product_key),
+    date_key INTEGER REFERENCES dim_date(date_key),
+    order_quantity INTEGER,
+    unit_price DECIMAL(10,2),
+    line_total DECIMAL(10,2),
+    discount_amount DECIMAL(10,2),
+    net_sales_amount DECIMAL(10,2),
+    profit DECIMAL(10,2),
+    tax_amount DECIMAL(10,2),
+    freight_amount DECIMAL(10,2),
+    saved_date DATE
+  )
 
-dim_servicio :
-  create table dim_servicio
-  (
-  key_dim_servicio SERIAL not null primary key,
-  id_servicio_pos  int,
-  descripcion      text,
-  costo             int,
-  saved            date
-  );
-
-trans_servicio :
-  create table trans_servicio
-  (
-  key_trans_servicio   SERIAL primary key,
-  codigo_servicio      text,
-  id_usuario           text,
-  id_medico            text,
-  fecha_solicitud      timestamp,
-  hora_solicitud       bigint,
-  fecha_atencion       timestamp,
-  hora_atencion        bigint,
-  servicio_pos         int,
-  fecha_hora_atencion  timestamp,
-  fecha_hora_solicitud timestamp,
-  saved                date
-  );
-dim_demografia :
-  create table dim_demografia
-  (key_dim_demo serial primary key,
-  numero_identificacion text not null,
-  fecha_nacimiento text ,
-  sexo char,
-  edad int,
-  estado_civil text,
-  tipo_discapacidad text,
-  tipo_usuario text not null,
-  nivel_escolaridad text,
-  estracto text,
-  proviene_otra_eps text,
-  salario_base text,
-  municipio text,
-  departamento text,
-  empresa text,
-  id_ips text
-  );
-dim_diag :
-  create table dim_diag (
-  key_dim_diag serial primary key,
-  numero_identificacion text,
-  diagnostico text,
-  fecha_diagnostico date
-  );
-dim_medicamentos:
-  create table dim_medicamentos(
-  key_dim_medicamentos serial primary key,
-  codigo int,
-  nombre text,
-  forma text,
-  presentacion text,
-  laboratorio text,
-  precio float,
-  tipo text  
-  );
-hecho_atencion :
-  create table hecho_atencion
-  (
-  key_hecho_atencion     SERIAL 
-  primary key,
-  key_trans_servicio     bigint  references trans_servicio(key_trans_servicio),
-  key_dim_diag int REFERENCES dim_diag(key_dim_diag),
-  key_dim_demo int REFERENCES dim_demografia(key_dim_demo),
-  key_fecha_atencion     bigint  REFERENCES public.dim_fecha(key_dim_fecha),
-  key_fecha_solicitud    bigint  REFERENCES public.dim_fecha(key_dim_fecha),
-  key_dim_persona        bigint  REFERENCES public.dim_persona(key_dim_persona),
-  key_dim_medico         bigint  REFERENCES public.dim_medico(key_dim_medico),
-  key_dim_ips            bigint  REFERENCES public.dim_ips(key_dim_ips),
-  key_dim_servicio       bigint  REFERENCES public.dim_servicio(key_dim_servicio),
-  tiempo_espera_dias     bigint,
-  tiempo_espera_minutos  integer,
-  tiempo_espera_horas    integer,
-  tiempo_espera_segundos integer,
-  costo                  int,
-  saved                  date
-  );
-
-hecho_retiros :
-  create table hecho_retiros
-  (
-  key_hecho_retiros serial primary key ,
-  retirado        boolean,
-  cambio_a_eps    text,
-  key_dim_persona bigint
-  references dim_persona,
-  key_dim_demo    bigint
-  references dim_demografia,
-  key_dim_fecha   bigint
-  references dim_fecha
-  );
-
-hecho_entrega :
-  create table hecho_entrega(
-  key_hecho_entrega serial primary key,
-  codigo_formula int ,
-  key_dim_demo    int  references dim_demografia,
-  key_dim_medicamentos int references dim_medicamentos,
-  key_dim_persona int references dim_persona,
-  key_dim_medico int references dim_medico,
-  key_dim_fecha int references dim_fecha,
-  precio float
-  );
+fact_reseller_sales: |
+  CREATE TABLE fact_reseller_sales (
+    sales_order_id INTEGER,
+    sales_order_detail_id INTEGER,
+    reseller_key INTEGER,
+    product_key INTEGER REFERENCES dim_product(product_key),
+    employee_key INTEGER,
+    date_key INTEGER REFERENCES dim_date(date_key),
+    order_quantity INTEGER,
+    unit_price DECIMAL(10,2),
+    line_total DECIMAL(10,2),
+    discount_amount DECIMAL(10,2),
+    net_sales_amount DECIMAL(10,2),
+    profit DECIMAL(10,2),
+    tax_amount DECIMAL(10,2),
+    freight_amount DECIMAL(10,2),
+    saved_date DATE
+  )

@@ -1,44 +1,87 @@
-# CS_etl_py
-Python etl for a health care database 
-## Requirements installation 
- **if not exists environment create one**
-```
+# ETL – Datamart de Internet Sales y Reseller Sales (AdventureWorks2022)
 
+### Desarrollado por 
+
+### ANGIE MELISSA OCORO HURTADO 2310176-3743
+### JUAN CAMILO LOPEZ QUINTANA 2310177-3743
+### VICTOR DANIEL ACUÑA SALAZAR 2310114-3743
+### JAVIER ANDRES LASSO ROJAS 2061149-3743
+### SEBASTIAN BOLAÑOS MORALES 2310168-3743
+
+
+Este proyecto implementa un proceso **ETL completo en Python** para construir dos datamarts:
+
+- **Internet Sales**
+- **Reseller Sales**
+
+a partir de la base de datos operacional **AdventureWorks2022** (SQL Server).  
+Los datos transformados se cargan en una bodega en **PostgreSQL**.
+
+---
+
+## 📌 Características principales
+
+ Extracción desde SQL Server con SQLAlchemy + pyodbc  
+ Transformación con pandas (limpieza, normalización, surrogate keys, joins)  
+ Carga final en PostgreSQL  
+ Construcción de las siguientes dimensiones:
+
+- `dim_date`
+- `dim_product`
+- `dim_customer`
+- `dim_territory`
+- `dim_reseller`
+- `dim_salesperson`
+
+ Construcción de los hechos:
+
+- `fact_internet_sales`
+- `fact_reseller_sales`
+
+ Notebooks para validar cada etapa del ETL  
+ Configuración externa vía archivo `config_fill.yml`
+
+---
+
+
+---
+
+## 🛠 Instalación del ambiente
+
+### 1. Crear entorno virtual
+
+**Linux / Mac**
+```bash
 python3 -m venv my_env
+source my_env/bin/activate
 
-#unix systems
-source my_env/bin/activate  
 
-#win
-python3 -m venv my_env
+## 🛠 Instalación de dependencias 
 
-#cmd.exe
-C:\> <venv>\Scripts\activate.bat
-
-#PowerShell
-PS C:\> <venv>\Scripts\Activate.ps1
-```
-your terminal should look like
-```
-(my_env) $
-```
-here you can install the packages by doing 
-```
 pip install -r requirements.txt
-```
 
-here you can install a missing package 
-```
+### Si flata algun driver
+
 pip install psycopg2
 pip install psycopg2-binary
-```
-structure of config.yml 
-```
-nombre_conexion:
-  drivername: postgresql  
-  user: postgres # su username
-  password : valor_privado
-  port: 5432 # pordefecto 
-  host: localhost # la direccion a la base de datos
-  dbname: colombia_saludable #nombre de la base de datos
-```
+
+
+### Configuracion del archivo config_fill.yml
+
+Adventure_Works:
+  drivername: mssql+pyodbc   
+  host: localhost
+  dbname: AdventureWorks2022
+  trusted_connection: yes
+  driver: ODBC Driver 17 for SQL Server
+
+ETL_PRO:
+  drivername: postgresql
+  user: postgres
+  password: tu_password
+  host: localhost
+  port: 5432
+  dbname: adventureworks_DW
+
+
+

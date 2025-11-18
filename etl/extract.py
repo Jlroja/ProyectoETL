@@ -2,138 +2,286 @@ import pandas as pd
 from sqlalchemy.engine import Engine
 
 
-def extract(tables : list,conection: Engine)-> pd.DataFrame:
+def extract(tables: list, connection: Engine) -> list[pd.DataFrame]:
+    
+    dataframes = []
+    for table in tables:
+        df = pd.read_sql_table(table, connection)
+        dataframes.append(df)
+    return dataframes
+
+
+def extract_internet_sales(connection: Engine, start_date: str = '2011-01-01'):
     """
-    :param conection: the conectionnection to the database
-    :param tables: the tables to extract
-    :return: a list of tables in df format
+    Extraemos datos de ventas por internet de AdventureWorks
     """
-    a = []
-    for i in tables:
-        aux = pd.read_sql_table(i, conection)
-        a.append(aux)
-    return a
-
-
-
-def extract_ips(conection: Engine):
+    query = """
+    SELECT 
+        soh.SalesOrderID,
+        soh.OrderDate,
+        soh.DueDate,
+        soh.ShipDate,
+        soh.CustomerID,
+        soh.SalesPersonID,
+        soh.TerritoryID,
+        soh.SubTotal,
+        soh.TaxAmt,
+        soh.Freight,
+        soh.TotalDue,
+        sod.SalesOrderDetailID,
+        sod.ProductID,
+        sod.OrderQty,
+        sod.UnitPrice,
+        sod.UnitPriceDiscount,
+        sod.LineTotal,
+        c.PersonID as CustomerPersonID,
+        soh.OnlineOrderFlag
+    FROM Sales.SalesOrderHeader soh
+    JOIN Sales.SalesOrderDetail sod ON soh.SalesOrderID = sod.SalesOrderID
+    JOIN Sales.Customer c ON soh.CustomerID = c.CustomerID
+    WHERE soh.OnlineOrderFlag = 1
+    AND soh.OrderDate >= ?
     """
-    Extract data from database where the conectionexion established
-    :param conection:
-    :return:
+    return pd.read_sql_query(query, connection, params=[start_date])
+
+
+def extract_reseller_sales(connection: Engine, start_date: str = '2011-01-01'):
     """
-    dim_ips = pd.read_sql_table('ips', conection)
-    return dim_ips
+    Extraemos datos de ventas por revendedores de AdventureWorks
+    """
+    query = """
+    SELECT 
+        soh.SalesOrderID,
+        soh.OrderDate,
+        soh.DueDate,
+        soh.ShipDate,
+        soh.CustomerID,
+        soh.SalesPersonID,
+        soh.TerritoryID,
+        soh.SubTotal,
+        soh.TaxAmt,
+        soh.Freight,
+        soh.TotalDue,
+        sod.SalesOrderDetailID,
+        sod.ProductID,
+        sod.OrderQty,
+        sod.UnitPrice,
+        sod.UnitPriceDiscount,
+        sod.LineTotal,
+        s.BusinessEntityID as StoreID,
+        s.Name as StoreName,
+        soh.OnlineOrderFlag
+    FROM Sales.SalesOrderHeader soh
+    JOIN Sales.SalesOrderDetail sod ON soh.SalesOrderID = sod.SalesOrderID
+    JOIN Sales.Customer c ON soh.CustomerID = c.CustomerID
+    JOIN Sales.Store s ON c.StoreID = s.BusinessEntityID
+    WHERE soh.OnlineOrderFlag = 0
+    AND soh.OrderDate >= ?
+    """
+    return pd.read_sql_query(query, connection, params=[start_date])
 
 
-
-def extract_medico(conection: Engine):
-    dim_medico = pd.read_sql_table('medico', conection)
-    return dim_medico
-
-
-
-
-def extract_persona(conection: Engine):
-    beneficiarios = pd.read_sql_table("beneficiario", conection)
-    cotizantes = pd.read_sql_table("cotizante", conection)
-    cotizante_beneficiario = pd.read_sql_table("cotizante_beneficiario", conection)
-    return [beneficiarios, cotizantes, cotizante_beneficiario]
-
-
-
-
-def extract_trans_servicio(conection: Engine):
-    df_citas = pd.read_sql_table('citas_generales', conection)
-    df_urgencias = pd.read_sql_table('urgencias', conection)
-    df_hosp = pd.read_sql_table('hospitalizaciones', conection)
-    remisiones = pd.read_sql_table('remisiones', conection)
-    return [df_citas, df_urgencias, df_hosp,remisiones]
-
-
-
-
-def extract_hecho_atencion(conection: Engine):
-    df_diag = pd.read_sql_table('dim_diag', conection)
-    df_demo = pd.read_sql_table('dim_demografia', conection)
-    df_trans = pd.read_sql_table('trans_servicio', conection)
-    dim_persona = pd.read_sql_table('dim_persona', conection)
-    dim_medico = pd.read_sql_table('dim_medico', conection)
-    dim_servicio = pd.read_sql_table('dim_servicio', conection)
-    dim_ips = pd.read_sql_table('dim_ips', conection)
-    dim_fecha = pd.read_sql_table('dim_fecha', conection)
-    return [df_trans,dim_persona,dim_medico,dim_servicio,dim_ips,dim_fecha,df_diag,df_demo ]
-
-def extract_medicamentos(path):
-    df_medicamentos = pd.read_excel(path)
-    df_medicamentos = df_medicamentos.rename(columns={'Código':'codigo', 'Nombre Genérico':'nombre','Forma Farmacéutica':'forma',
-                                    'Laboratorio y Registro':'laboratorio', 'Tipo Medicamento':'tipo', 'Presentación':'presentacion','Precio':'precio'})
-    return df_medicamentos
+def extract_customers(connection: Engine):
+    """
+    Extraemos datos de clientes
+    """
+    query = """
+    SELECT 
+        c.CustomerID,
+        c.PersonID,
+        c.StoreID,
+        p.FirstName,
+        p.LastName,
+        p.EmailPromotion,
+        be.EmailAddress,
+        pp.PhoneNumber,
+        a.AddressLine1,
+        a.City,
+        a.PostalCode,
+        sp.Name as StateProvince,
+        cr.Name as CountryRegion
+    FROM Sales.Customer c
+    LEFT JOIN Person.Person p ON c.PersonID = p.BusinessEntityID
+    LEFT JOIN Person.EmailAddress be ON p.BusinessEntityID = be.BusinessEntityID
+    LEFT JOIN Person.PersonPhone pp ON p.BusinessEntityID = pp.BusinessEntityID
+    LEFT JOIN Person.BusinessEntityAddress bea ON p.BusinessEntityID = bea.BusinessEntityID
+    LEFT JOIN Person.Address a ON bea.AddressID = a.AddressID
+    LEFT JOIN Person.StateProvince sp ON a.StateProvinceID = sp.StateProvinceID
+    LEFT JOIN Person.CountryRegion cr ON sp.CountryRegionCode = cr.CountryRegionCode
+    """
+    return pd.read_sql_query(query, connection)
 
 
+def extract_products(connection: Engine):
+    """
+    Extraemos datos de productos
+    """
+    query = """
+    SELECT 
+        p.ProductID,
+        p.Name as ProductName,
+        p.ProductNumber,
+        p.Color,
+        p.StandardCost,
+        p.ListPrice,
+        p.Size,
+        p.Weight,
+        p.ProductLine,
+        p.Class,
+        p.Style,
+        psc.Name as SubcategoryName,
+        pc.Name as CategoryName,
+        pm.Name as ProductModelName
+    FROM Production.Product p
+    LEFT JOIN Production.ProductSubcategory psc ON p.ProductSubcategoryID = psc.ProductSubcategoryID
+    LEFT JOIN Production.ProductCategory pc ON psc.ProductCategoryID = pc.ProductCategoryID
+    LEFT JOIN Production.ProductModel pm ON p.ProductModelID = pm.ProductModelID
+    """
+    return pd.read_sql_query(query, connection)
 
 
-def extract_receta(conection:Engine):
-    df_receta = pd.read_sql_query('''select codigo_formula , id_medico, id_usuario, fecha, 
-    medicamentos_recetados as medicamentos from formulas_medicas''',conection)
-    return df_receta
-
-def extract_demografia(conection: Engine):
-    df_benco= pd.read_sql_table('cotizante_beneficiario', conection)
-    df_cotizantes = pd.read_sql_query(
-        '''select cedula as numero_identificacion, tipo_cotizante, estado_civil, sexo, fecha_nacimiento,
-            nivel_escolaridad, estracto, proviene_otra_eps,salario_base,tipo_discapacidad,id_ips from cotizante''', conection)
-    df_beneficiarios = pd.read_sql_query(
-        '''select id_beneficiario as numero_identificacion, fecha_nacimiento, sexo, estado_civil,
-         tipo_discapacidad from beneficiario ''', conection)
-    df_ips = pd.read_sql_query('select id_ips,municipio,departamento from ips', conection )
-    empresa = pd.read_sql_query('select nit , nombre as empresa from empresa', conection)
-    empcot = pd.read_sql_query('select empresa as nit, cotizante as numero_identificacion from empresa_cotizante', conection)
-    return [df_benco,df_cotizantes,df_beneficiarios,df_ips, empresa, empcot]
-
-def extract_enfermedades(conection : Engine):
-    urgencias = pd.read_sql_query('select id_usuario, diagnostico,fecha_atencion from urgencias', conection)
-    hospitalizaciones = pd.read_sql_query('select id_usuario, diagnostico, fecha_atencion  from hospitalizaciones', conection)
-    citas_generales = pd.read_sql_query('select id_usuario, diagnostico,fecha_atencion  from citas_generales', conection)
-    remisiones = pd.read_sql_query('select id_usuario, diagnostico, fecha_atencion  from remisiones', conection)
-
-    return [urgencias, citas_generales, hospitalizaciones, remisiones]
-
-def extract_paymetns(conection: Engine):
-    df = pd.read_sql_query('select * from pagos', conection)
-    return df
-
-def extract_retiros(conection: Engine,conection_etl):
-    df_retiros = pd.read_sql_query('select * from retiros', conection)
-    df_pagos = pd.read_sql_query('select * from pagos', conection)
-    df_per = pd.read_sql_table('dim_persona', conection_etl)
-    df_dom = pd.read_sql_query('select * from dim_demografia', conection_etl)
-    df_fecha = pd.read_sql_query('select * from dim_fecha', conection_etl)
-    return [df_pagos, df_retiros,df_per, df_dom,df_fecha]
-
-def extract_hecho_entrega(source, etl):
-    df_med = pd.read_sql_table('dim_medicamentos',etl)
-    df_form = extract_receta(source)
-    df_demo = pd.read_sql_table('dim_demografia', etl)
-    df_per = pd.read_sql_table('dim_persona', etl)
-    df_doc = pd.read_sql_table('dim_medico', etl)
-    df_fecha = pd.read_sql_table('dim_fecha',etl)
-    return [df_med,df_form,df_per, df_doc,df_fecha,df_demo]
-
-def extract_remisiones(conection : Engine,etl):
-    df_demo = pd.read_sql_table('dim_demografia', etl)
-    df_persona = pd.read_sql_query('select key_dim_persona, numero_identificacion from dim_persona', etl)
-    df_medico = pd.read_sql_query('select key_dim_medico, cedula from  dim_medico',etl)
-    df_fecha = pd.read_sql_query('select date, key_dim_fecha  from dim_fecha',etl)
-    df_remisiones = pd.read_sql_query('select id_usuario, servicio_pos, id_medico, fecha_remision, codigo_remision from remisiones', conection)
-    df_servicio_pos = pd.read_sql_query('select key_dim_servicio, id_servicio_pos servicio_pos,costo from dim_servicio', etl)
-    return [df_remisiones, df_servicio_pos,df_persona,df_medico,df_fecha,df_demo]
-
-def extract_servicios(conectionn):
-    df_servicios = pd.read_sql_table('servicios_pos', conectionn)
-    return df_servicios
+def extract_sales_territory(connection: Engine):
+    """
+    Extraemos datos de territorios de venta
+    """
+    return pd.read_sql_table('SalesTerritory', connection, schema='Sales')
 
 
+def extract_currency(connection: Engine):
+    """
+    Extraemos datos de monedas
+    """
+    return pd.read_sql_table('Currency', connection, schema='Sales')
 
 
-#%%
+def extract_employees(connection: Engine):
+    """
+    Extraemos datos de empleados/vendedores
+    """
+    query = """
+    SELECT 
+        e.BusinessEntityID,
+        p.FirstName,
+        p.LastName,
+        e.JobTitle,
+        e.HireDate,
+        e.BirthDate,
+        d.Name as DepartmentName
+    FROM HumanResources.Employee e
+    JOIN Person.Person p ON e.BusinessEntityID = p.BusinessEntityID
+    JOIN HumanResources.EmployeeDepartmentHistory edh ON e.BusinessEntityID = edh.BusinessEntityID
+    JOIN HumanResources.Department d ON edh.DepartmentID = d.DepartmentID
+    WHERE edh.EndDate IS NULL  -- Departamento actual
+    """
+    return pd.read_sql_query(query, connection)
+
+
+def extract_stores(connection: Engine):
+    """
+    Extraemos datos de tiendas/revendedores
+    """
+    query = """
+    SELECT 
+        s.BusinessEntityID as StoreID,
+        s.Name as StoreName,
+        bea.AddressID,
+        a.AddressLine1,
+        a.City,
+        a.PostalCode,
+        sp.Name as StateProvince,
+        cr.Name as CountryRegion
+    FROM Sales.Store s
+    JOIN Person.BusinessEntityAddress bea ON s.BusinessEntityID = bea.BusinessEntityID
+    JOIN Person.Address a ON bea.AddressID = a.AddressID
+    JOIN Person.StateProvince sp ON a.StateProvinceID = sp.StateProvinceID
+    JOIN Person.CountryRegion cr ON sp.CountryRegionCode = cr.CountryRegionCode
+    """
+    return pd.read_sql_query(query, connection)
+
+
+def extract_sales_person(connection: Engine):
+    """
+    Extraemos datos de vendedores
+    """
+    query = """
+    SELECT 
+        sp.BusinessEntityID,
+        sp.TerritoryID,
+        sp.SalesQuota,
+        sp.Bonus,
+        sp.CommissionPct,
+        sp.SalesYTD,
+        sp.SalesLastYear
+    FROM Sales.SalesPerson sp
+    """
+    return pd.read_sql_query(query, connection)
+
+
+def extract_hecho_internet_sales(etl_connection: Engine):
+    """
+    Extraemos los datos ya transformados para el hecho de ventas por internet
+    (Para cargas incrementales desde la bodega)
+    """
+    df_trans = pd.read_sql_table('trans_internet_sales', etl_connection)
+    dim_customer = pd.read_sql_table('dim_customer', etl_connection)
+    dim_product = pd.read_sql_table('dim_product', etl_connection)
+    dim_date = pd.read_sql_table('dim_date', etl_connection)
+    dim_territory = pd.read_sql_table('dim_territory', etl_connection)
+    
+    return [df_trans, dim_customer, dim_product, dim_date, dim_territory]
+
+
+def extract_hecho_reseller_sales(etl_connection: Engine):
+    """
+    Extraemos los datos ya transformados para el hecho de ventas por revendedores
+    (Para cargas incrementales desde la bodega)
+    """
+    df_trans = pd.read_sql_table('trans_reseller_sales', etl_connection)
+    dim_reseller = pd.read_sql_table('dim_reseller', etl_connection)
+    dim_product = pd.read_sql_table('dim_product', etl_connection)
+    dim_date = pd.read_sql_table('dim_date', etl_connection)
+    dim_territory = pd.read_sql_table('dim_territory', etl_connection)
+    dim_employee = pd.read_sql_table('dim_employee', etl_connection)
+    
+    return [df_trans, dim_reseller, dim_product, dim_date, dim_territory, dim_employee]
+
+
+def extract_dimensions_from_dw(etl_connection: Engine):
+    """
+    Extraemos todas las dimensiones de la bodega de datos
+    (Para transformaciones que necesitan referencias)
+    """
+    dim_customer = pd.read_sql_table('dim_customer', etl_connection)
+    dim_product = pd.read_sql_table('dim_product', etl_connection)
+    dim_date = pd.read_sql_table('dim_date', etl_connection)
+    dim_territory = pd.read_sql_table('dim_territory', etl_connection)
+    dim_currency = pd.read_sql_table('dim_currency', etl_connection)
+    dim_employee = pd.read_sql_table('dim_employee', etl_connection)
+    dim_reseller = pd.read_sql_table('dim_reseller', etl_connection)
+    
+    return {
+        'dim_customer': dim_customer,
+        'dim_product': dim_product,
+        'dim_date': dim_date,
+        'dim_territory': dim_territory,
+        'dim_currency': dim_currency,
+        'dim_employee': dim_employee,
+        'dim_reseller': dim_reseller
+    }
+
+
+def extract_sales_reason(connection: Engine):
+    """
+    Extraemos razones de venta
+    """
+    query = """
+    SELECT 
+        sr.SalesReasonID,
+        sr.Name as ReasonName,
+        sr.ReasonType,
+        soh.SalesOrderID
+    FROM Sales.SalesReason sr
+    JOIN Sales.SalesOrderHeaderSalesReason sohsr ON sr.SalesReasonID = sohsr.SalesReasonID
+    JOIN Sales.SalesOrderHeader soh ON sohsr.SalesOrderID = soh.SalesOrderID
+    """
+    return pd.read_sql_query(query, connection)

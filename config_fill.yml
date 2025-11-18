@@ -1,21 +1,17 @@
-CO_SA:
-  drivername: postgresql
-  dbname: colombiasaludable
-  user: postgres
-  password:
-  host: localhost
-  port:
+Adventure_Works:
+  drivername: sqlserver
+  dbname: AdventureWorks2022
+  host: LAPTOP-3HKBS1ST\SQLEXPRESS
+  trusted_connection: yes
+  driver: ODBC Driver 17 for SQL Server
 
 ETL_PRO:
   drivername: postgresql
-  dbname: etl_process
+  dbname: adventureworks_dw
   user: postgres
-  password:
+  password: postgres
   host: localhost
-  port:
+  port: 5432
 
-LOAD_DIMENSIONS:
-  True
-
-medicamentos:
-  sources/medicamentos.xls
+LOAD_DIMENSIONS: true
+START_DATE: '2011-01-01'
